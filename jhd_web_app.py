@@ -19,7 +19,7 @@ st.subheader("Central Control Hub (Phase 1 — Core AI Organization)")
 st.markdown("---")
 
 # 2. ตั้งค่า API Key
-API_KEY = "AIzaSyCYotvDUC7dQviOd8RRyI7QTovnPd4HUug"
+API_KEY = st.secrets["GEMINI_KEY"]
 genai.configure(api_key=API_KEY)
 
 # 3. ฟังก์ชันโหลดสมอง (Knowledge Base) ของ AI ทั้ง 5
