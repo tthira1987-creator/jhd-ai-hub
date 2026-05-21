@@ -38,7 +38,7 @@ GITHUB_BRANCH = "main"
 GITHUB_RAW_URL = f"https://raw.githubusercontent.com/{GITHUB_USER}/{GITHUB_REPO}/{GITHUB_BRANCH}/"
 
 # ⚙️ กำหนดรหัสลิงก์เชื่อมโยงไปยังคลังความทรงจำ Google Sheets ของ JHD
-GOOGLE_SHEET_KEY = "1X2vs1tfSRK6_6fBDfORxkFu645u8idvx_AfnBgE64"
+GOOGLE_SHEET_KEY = "1X2vs1tFsRK6_6fBDFfORxkFu645u8idvx__AfnBgE64"
 
 SCOPES = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
 
