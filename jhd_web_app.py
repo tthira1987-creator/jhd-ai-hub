@@ -219,7 +219,7 @@ AGENTS = {
 # ==================================================
 with st.sidebar:
     st.markdown("### 🤖 เลือก Sub-Agent")
-   selected_name = st.selectbox(
+    selected_name = st.selectbox(
         "Agent:", list(AGENTS.keys()), label_visibility="collapsed", key="agent_selector"
     )
     agent = AGENTS[selected_name]
