@@ -6,6 +6,38 @@ import pandas as pd
 from openai import OpenAI # เปลี่ยนมาใช้ตัวนี้ครับ
 from datetime import datetime
 import gspread
+import math
+
+def calculate_jhd_price(char_count, height, width, material, thickness, option_num):
+    # 1. ตาราง Material Factor 2026
+    factors = {
+        'CN': {6: 0.45, 10: 0.60, 15: 0.95, 20: 1.40, 25: 1.85},
+        'CT': {6: 0.95, 10: 1.35, 15: 1.95, 20: 2.60, 25: 3.20},
+        'AU': {6: 0.70, 10: 1.05, 15: 1.85, 20: 2.40, 25: 3.00}
+    }
+    # 2. ตาราง % Option Layer
+    options_pct = {1: 0.0, 2: 0.20, 3: 0.45, 4: 0.35, 5: 0.60, 6: 1.20, 7: 1.55}
+    
+    # 3. คำนวณราคา (คณิตศาสตร์ตรง ๆ ทศนิยมไม่แกว่ง)
+    area = height * width
+    factor = factors[material][thickness]
+    
+    base_price = area * factor
+    option_price = base_price * options_pct[option_num]
+    final_price_per_char = base_price + option_price
+    
+    total_no_vat = final_price_per_char * char_count
+    vat = total_no_vat * 0.07
+    grand_total = math.ceil(total_no_vat + vat) # ปัดเศษขึ้นเป็นจำนวนเต็ม
+    
+    return {
+        "base_price": base_price,
+        "option_price": option_price,
+        "price_per_char": final_price_per_char,
+        "total_no_vat": total_no_vat,
+        "vat": vat,
+        "grand_total": grand_total
+    }
 from google.oauth2.service_account import Credentials
 
 # ==================================================
