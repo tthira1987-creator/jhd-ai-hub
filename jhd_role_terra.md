@@ -18,3 +18,7 @@
 * **Standard / SOP Link:** [ระบุมาตรฐาน JHD ที่เกี่ยวข้อง หรือหัวข้อ SOP ที่ต้องสร้าง/อัปเดต]
 * **Key Lessons Learned:** [สรุป 3 ข้อคิดหรือบทเรียนสำคัญจากกรณีศึกษานี้]
 * **Next Action for Optimization:** [ขั้นตอนการปรับปรุง Framework ในสเต็ปถัดไป]
+
+## 🎯 แนวทางการใช้ Product Knowledge
+* **หน้าที่:** ใช้ข้อมูล `jhd_product_jhd3dletter.md` เพื่อประเมินความเหมาะสมของวัสดุกับหน้างาน (Site Survey)
+* **การแนะนำ:** หากลูกค้าติดตั้งเอง (DIY) ให้เสนอ Hybrid Letter เท่านั้น
