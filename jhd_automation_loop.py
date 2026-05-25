@@ -51,78 +51,61 @@ class JHDAutomationSystem:
         return response.choices[0].message.content
 
     def run_full_workflow(self, chat_history, mode):
-        chat_context = "--- ประวัติการสนทนาที่ผ่านมา ---\n"
+        chat_context = "--- ประวัติการสนทนา ---\n"
         for msg in chat_history[:-1]: 
             sender = "Lead" if msg["role"] == "user" else "น้อง SUN"
             chat_context += f"{sender}: {msg['content']}\n"
         
         latest_message = chat_history[-1]['content']
-        full_prompt = f"{chat_context}\n--- ข้อความล่าสุด ---\nLead ได้พิมพ์มาว่า: {latest_message}"
-        internal_memory = [{"role": "user", "content": full_prompt}]
-        workflow_sequence = ["SUN", "NOTE", "TERRA", "NAVARA", "BIGM"]
+        internal_memory = [{"role": "user", "content": f"{chat_context}\n--- ล่าสุด ---\n{latest_message}"}]
         
-        mode_instruction = ""
-        if mode == "Service Mode (Customer)":
-            mode_instruction = """
-ถึงทุกคน: ขณะนี้เราอยู่ใน 'Service Mode' (โหมดคุยกับลูกค้า)
-กฎเหล็ก: 
-1. ตรวจสอบว่าข้อมูลเบื้องต้น (SOP Step 1: ชื่อ, ประเภทงาน, ขนาด, งบ) ครบถ้วนหรือไม่
-2. หากไม่ครบ: ต้องเป็นฝ่ายถามข้อมูลให้ครบ ห้ามข้ามขั้นตอน
-3. หากข้อมูลครบแล้ว: ให้วิเคราะห์ตามหน้าที่ของตัวคุณ
-4. ห้ามหลุดคำว่า [OUTPUT] หรือ [SUN OUTPUT] เด็ดขาด"""
-        else:
-            mode_instruction = "ถึงทุกคน: ขณะนี้อยู่ใน 'Internal Mode' (โหมดคุยกับ Lead) คุณคือทีมงานคุณภาพ ปฏิบัติภารกิจงานที่ Lead สั่งได้ทันที"
+        # Internal Analysis (ไม่แสดงให้ลูกค้าเห็น)
+        for agent in ["NOTE", "TERRA", "NAVARA", "BIGM"]:
+            analysis = self._call_agent(agent, internal_memory)
+            internal_memory.append({"role": "assistant", "content": f"[{agent} Analysis]: {analysis}"})
 
-        for agent in workflow_sequence:
-            trigger_msg = {"role": "user", "content": f"{mode_instruction}\n\nถึง {agent}: วิเคราะห์และตอบคำถามล่าสุด หากไม่เกี่ยวข้องกับหน้าที่ของคุณให้ตอบว่า 'PASS'"}
-            internal_memory.append(trigger_msg)
-            agent_response = self._call_agent(agent, internal_memory)
-            internal_memory.append({"role": "assistant", "content": agent_response})
-
-        final_instruction = {
-            "role": "user", 
-            "content": """ถึง SUN: คุณคือ 'น้องซัน' เลขาหน้าห้อง 
-กฎการตอบ:
-1. สรุปผลจากทีมงานให้ตรงคำถามที่สุด ตอบแบบยืดหยุ่น เป็นธรรมชาติ
-2. ห้ามอธิบายกระบวนการทำงานหลังบ้าน ห้ามบอกว่าใครทำอะไร
-3. 🚨 ห้ามมีคำว่า [SUN OUTPUT]:, [OUTPUT], หรือ PASS เด็ดขาด!
-4. ตอบด้วยความสุภาพ มืออาชีพ และมั่นใจ ไม่ต้องเรียกผู้ใช้ว่าเจ้านาย ให้เรียกแทนตัวว่าคุณ หรือเรียก Lead"""
-        }
-        internal_memory.append(final_instruction)
+        # SUN Response Formulation
+        prompt_to_sun = f"""
+        ถึง SUN: คุณคือ 'น้องซัน' เลขาหน้าห้อง
+        
+        โหมดใช้งาน: {mode}
+        
+        กฎการตอบสำหรับ Service Mode (Customer):
+        1. **ห้ามพูดภาษาระบบ** (ห้ามพูดเรื่อง Job Type, Priority, Confidence Score) ให้พูดเหมือนเลขาฯ คุยกับลูกค้า
+        2. **ตรวจสอบข้อมูล SOP Step 1**: หากข้อมูล (ชื่อร้าน, สิ่งที่ทำ, ขนาด, งบ) ยังไม่ครบ ห้ามสรุปงาน ให้ถามหาข้อมูลที่ขาดไปอย่างสุภาพจนกว่าจะครบ
+        3. **ถ้าข้อมูลครบ**: ให้ใช้ข้อมูลที่เพื่อนร่วมทีมวิเคราะห์มา สรุปตอบลูกค้าแบบเป็นธรรมชาติที่สุด
+        4. ห้ามมีคำว่า [SUN OUTPUT] หรือ [Analysis] หลุดออกมา
+        
+        กฎการตอบสำหรับ Internal Mode (Lead):
+        1. รายงานผลสรุปงานแบบมืออาชีพ สั้น กระชับ แม่นยำ
+        """
+        
+        internal_memory.append({"role": "user", "content": prompt_to_sun})
         return self._call_agent("SUN", internal_memory)
 
 if __name__ == "__main__":
     st.set_page_config(page_title="JHD Intelligence", page_icon="☀️", layout="centered")
-    
     st.sidebar.title("⚙️ System Control")
     mode = st.sidebar.radio("สถานะโหมดใช้งาน:", ["Internal Mode (Lead)", "Service Mode (Customer)"])
-    
     st.title("☀️ น้อง SUN (JHD Secretary)")
-    st.caption(f"Status: {mode}")
-
+    
     try:
         API_KEY = st.secrets["OPENROUTER_API_KEY"]
-    except KeyError:
-        st.error("⚠️ ไม่พบ API Key! กรุณาไปใส่ใน Settings > Secrets ของ Streamlit ครับ")
+    except:
+        st.error("⚠️ API Key Error")
         st.stop()
 
     jhd_system = JHDAutomationSystem(API_KEY)
-
-    if "messages" not in st.session_state:
-        st.session_state.messages = []
+    if "messages" not in st.session_state: st.session_state.messages = []
 
     for msg in st.session_state.messages:
-        with st.chat_message(msg["role"]):
-            st.markdown(msg["content"])
+        with st.chat_message(msg["role"]): st.markdown(msg["content"])
 
-    if prompt := st.chat_input("💬 พิมพ์คุยกับน้อง SUN..."):
+    if prompt := st.chat_input("💬..."):
         st.session_state.messages.append({"role": "user", "content": prompt})
-        with st.chat_message("user"):
-            st.markdown(prompt)
-
+        with st.chat_message("user"): st.markdown(prompt)
         with st.chat_message("assistant"):
             with st.spinner("น้องซันกำลังประมวลผล..."):
                 result = jhd_system.run_full_workflow(st.session_state.messages, mode)
                 st.markdown(result)
-        
         st.session_state.messages.append({"role": "assistant", "content": result})
