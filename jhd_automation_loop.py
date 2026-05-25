@@ -50,13 +50,15 @@ class JHDAutomationSystem:
         )
         return response.choices[0].message.content
 
-    def run_full_workflow(self, chat_history, mode):
+   def run_full_workflow(self, chat_history, mode):
+        # 1. จัดเรียงประวัติแชท
         chat_context = "--- ประวัติการสนทนาที่ผ่านมา ---\n"
         for msg in chat_history[:-1]: 
             sender = "Lead" if msg["role"] == "user" else "น้อง SUN"
             chat_context += f"{sender}: {msg['content']}\n"
         
         latest_message = chat_history[-1]['content']
+        
         full_prompt = f"{chat_context}\n--- ข้อความล่าสุด ---\nLead ได้พิมพ์มาว่า: {latest_message}"
         internal_memory = [{"role": "user", "content": full_prompt}]
         workflow_sequence = ["SUN", "NOTE", "TERRA", "NAVARA", "BIGM"]
@@ -86,10 +88,11 @@ class JHDAutomationSystem:
 1. สรุปผลจากทีมงานให้ตรงคำถามที่สุด ตอบแบบยืดหยุ่น เป็นธรรมชาติ
 2. ห้ามอธิบายกระบวนการทำงานหลังบ้าน ห้ามบอกว่าใครทำอะไร
 3. 🚨 ห้ามมีคำว่า [SUN OUTPUT]:, [OUTPUT], หรือ PASS เด็ดขาด!
-4. ตอบด้วยความสุภาพ มืออาชีพ และมั่นใจ"""
+4. ตอบด้วยความสุภาพ มืออาชีพ และมั่นใจ ไม่ต้องเรียกผู้ใช้ว่าเจ้านาย ให้เรียกแทนตัวว่าคุณ หรือเรียก Lead"""
         }
         internal_memory.append(final_instruction)
         return self._call_agent("SUN", internal_memory)
+
 
 if __name__ == "__main__":
     st.set_page_config(page_title="JHD Intelligence", page_icon="☀️", layout="centered")
