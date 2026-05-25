@@ -50,39 +50,43 @@ class JHDAutomationSystem:
         )
         return response.choices[0].message.content
 
-    def run_full_workflow(self, chat_history, mode):
+   def run_full_workflow(self, chat_history, mode):
+        # 1. จัดเรียงประวัติแชท
         chat_context = "--- ประวัติการสนทนา ---\n"
         for msg in chat_history[:-1]: 
             sender = "Lead" if msg["role"] == "user" else "น้อง SUN"
             chat_context += f"{sender}: {msg['content']}\n"
         
         latest_message = chat_history[-1]['content']
-        internal_memory = [{"role": "user", "content": f"{chat_context}\n--- ล่าสุด ---\n{latest_message}"}]
+        internal_memory = [{"role": "user", "content": f"{chat_context}\n--- ข้อความล่าสุดจาก Lead: ---\n{latest_message}"}]
         
-        # Internal Analysis (ไม่แสดงให้ลูกค้าเห็น)
-        for agent in ["NOTE", "TERRA", "NAVARA", "BIGM"]:
-            analysis = self._call_agent(agent, internal_memory)
-            internal_memory.append({"role": "assistant", "content": f"[{agent} Analysis]: {analysis}"})
+        # 2. ปรับการทำงานตามโหมด
+        if mode == "Service Mode (Customer)":
+            # โหมดบริการลูกค้า: NOTE ต้องคุม SOP / SUN ต้องเป็น Interface
+            for agent in ["NOTE", "TERRA", "NAVARA", "BIGM"]:
+                # ให้ NOTE ทำหน้าที่คัดกรองงานเป็นหลัก
+                instruction = f"ถึง {agent}: คุณอยู่ในโหมดบริการลูกค้า (Service Mode) 1. ตรวจสอบข้อมูล SOP Step 1 หากไม่ครบให้ร่างคำถามกลับมา 2. ห้ามข้ามไปเสนอราคา 3. ห้ามพูดภาษาระบบ"
+                internal_memory.append({"role": "user", "content": instruction})
+                analysis = self._call_agent(agent, internal_memory)
+                internal_memory.append({"role": "assistant", "content": f"[{agent} Analysis]: {analysis}"})
+            
+            # สรุปให้ SUN พูด
+            final_prompt = "ถึง SUN: คุณคือเลขาหน้าห้อง (Interface) ให้สรุปคำแนะนำจาก NOTE มาตอบลูกค้าด้วยภาษาที่เป็นธรรมชาติที่สุด ห้ามหลุดเรื่องระบบหลังบ้าน"
+            
+        else:
+            # Internal Mode (โหมดใช้งานปกติ/Lead): ให้ทีมทำงานเต็มที่ ไม่ต้องมี Gatekeeper
+            # ให้ NOTE/TERRA วิเคราะห์งานเหมือนเดิม
+            for agent in ["NOTE", "TERRA", "NAVARA", "BIGM"]:
+                instruction = f"ถึง {agent}: คุณอยู่ใน Internal Mode (โหมดทำงานกับ Lead) 1. ให้คำปรึกษาที่ลึกซึ้ง 2. วิเคราะห์งานได้เลยเต็มที่ 3. นำเสนอแนวทางแบบผู้เชี่ยวชาญได้ทันที ไม่ต้องถามข้อมูลเบื้องต้นซ้ำซ้อน"
+                internal_memory.append({"role": "user", "content": instruction})
+                analysis = self._call_agent(agent, internal_memory)
+                internal_memory.append({"role": "assistant", "content": f"[{agent} Analysis]: {analysis}"})
+            
+            # สรุปให้ SUN พูดในฐานะทีมงาน
+            final_prompt = "ถึง SUN: คุณคือสมาชิกทีมงาน JHD สรุปการวิเคราะห์ทั้งหมดจากเพื่อนร่วมทีมให้ Lead ทราบแบบมืออาชีพ สั้น กระชับ แม่นยำ"
 
-        # SUN Response Formulation
-        prompt_to_sun = f"""
-        ถึง SUN: คุณคือ 'น้องซัน' เลขาหน้าห้อง
-        
-        โหมดใช้งาน: {mode}
-        
-        กฎการตอบสำหรับ Service Mode (Customer):
-        1. **ห้ามพูดภาษาระบบ** (ห้ามพูดเรื่อง Job Type, Priority, Confidence Score) ให้พูดเหมือนเลขาฯ คุยกับลูกค้า
-        2. **ตรวจสอบข้อมูล SOP Step 1**: หากข้อมูล (ชื่อร้าน, สิ่งที่ทำ, ขนาด, งบ) ยังไม่ครบ ห้ามสรุปงาน ให้ถามหาข้อมูลที่ขาดไปอย่างสุภาพจนกว่าจะครบ
-        3. **ถ้าข้อมูลครบ**: ให้ใช้ข้อมูลที่เพื่อนร่วมทีมวิเคราะห์มา สรุปตอบลูกค้าแบบเป็นธรรมชาติที่สุด
-        4. ห้ามมีคำว่า [SUN OUTPUT] หรือ [Analysis] หลุดออกมา
-        
-        กฎการตอบสำหรับ Internal Mode (Lead):
-        1. รายงานผลสรุปงานแบบมืออาชีพ สั้น กระชับ แม่นยำ
-        """
-        
-        internal_memory.append({"role": "user", "content": prompt_to_sun})
+        internal_memory.append({"role": "user", "content": final_prompt})
         return self._call_agent("SUN", internal_memory)
-
 if __name__ == "__main__":
     st.set_page_config(page_title="JHD Intelligence", page_icon="☀️", layout="centered")
     st.sidebar.title("⚙️ System Control")
