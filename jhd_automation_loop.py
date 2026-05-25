@@ -15,19 +15,18 @@ except:
     st.error("⚠️ API Key Error")
     st.stop()
 
-# เรียกใช้ Workflow Manager
 jhd_manager = JHDWorkflowManager(API_KEY)
 
-if "messages" not in st.session_state: 
+if "messages" not in st.session_state:
     st.session_state.messages = []
 
 for msg in st.session_state.messages:
-    with st.chat_message(msg["role"]): 
+    with st.chat_message(msg["role"]):
         st.markdown(msg["content"])
 
 if prompt := st.chat_input("💬 พิมพ์คุยกับน้อง SUN..."):
     st.session_state.messages.append({"role": "user", "content": prompt})
-    with st.chat_message("user"): 
+    with st.chat_message("user"):
         st.markdown(prompt)
     with st.chat_message("assistant"):
         with st.spinner("น้องซันกำลังประมวลผล..."):
