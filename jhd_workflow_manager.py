@@ -12,15 +12,15 @@ class JHDWorkflowManager:
                 "jhd_formula_pricing_note.md", "jhd_company_pitch_note.md", 
                 "jhd_script_sales_note.md", "jhd_script_quick_reply_note.md",
                 "jhd_sales_intelligence_note.md", "jhd_sales_strategy_note.md",
-                "jhd_sales_framework_note.md", "jhd_product_jhd3dletter.md"  # <--- เพิ่มตรงนี้
+                "jhd_sales_framework_note.md", "jhd_product_jhd3dletter.md"
             ],
             "TERRA": [
                 "jhd_persona_terra.md", "jhd_role_terra.md", 
                 "jhd_company_core_terra.md", "jhd_master_sop_terra.md",
-                "jhd_service_system_terra.md", "jhd_product_jhd3dletter.md"  # <--- เพิ่มตรงนี้
+                "jhd_service_system_terra.md", "jhd_product_jhd3dletter.md"
             ],
-            "NAVARA": ["jhd_persona_navara.md", "jhd_role_navara.md", "jhd_product_jhd3dletter.md"], # <--- เพิ่มตรงนี้
-            "BIGM": ["jhd_persona_bigm.md", "jhd_role_bigm.md", "jhd_product_jhd3dletter.md"]        # <--- เพิ่มตรงนี้
+            "NAVARA": ["jhd_persona_navara.md", "jhd_role_navara.md", "jhd_product_jhd3dletter.md"],
+            "BIGM": ["jhd_persona_bigm.md", "jhd_role_bigm.md", "jhd_product_jhd3dletter.md"]
         }
 
     def _load_system_prompt(self, agent_name):
@@ -43,7 +43,6 @@ class JHDWorkflowManager:
         internal_memory = [{"role": "user", "content": f"Lead/ลูกค้า ถามว่า: {latest_message}"}]
 
         if mode == "Service Mode (Customer)":
-            # NOTE คุม SOP
             for agent in ["NOTE", "TERRA", "NAVARA", "BIGM"]:
                 instruction = f"ถึง {agent}: วิเคราะห์ข้อมูลลูกค้าตาม SOP Step 1 หากไม่ครบให้ร่างคำถามกลับมา อย่าเพิ่งเสนอราคา"
                 internal_memory.append({"role": "user", "content": instruction})
@@ -51,7 +50,6 @@ class JHDWorkflowManager:
                 internal_memory.append({"role": "assistant", "content": f"[{agent} Analysis]: {analysis}"})
             final_prompt = "ถึง SUN: สรุปคำแนะนำจาก NOTE มาตอบลูกค้าให้ดูเป็นธรรมชาติที่สุด ห้ามพูดเรื่องระบบ"
         else:
-            # Internal Mode
             for agent in ["NOTE", "TERRA", "NAVARA", "BIGM"]:
                 instruction = f"ถึง {agent}: คุณอยู่ใน Internal Mode (โหมดทำงานกับ Lead) 1. ให้คำปรึกษาที่ลึกซึ้ง 2. วิเคราะห์งานได้เลยเต็มที่ ไม่ต้องถามข้อมูลเบื้องต้นซ้ำซ้อน"
                 internal_memory.append({"role": "user", "content": instruction})
