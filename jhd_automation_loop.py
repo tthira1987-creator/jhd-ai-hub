@@ -21,7 +21,7 @@ class JHDAutomationSystem:
             ],
             "TERRA": [
                 "jhd_persona_terra.md", "jhd_role_terra.md", 
-                "jhd_company_core_terra.md", "jhd_master_sop_terra.md"
+                "jhd_company_core_terra.md", "jhd_master_sop_terra.md", "jhd_service_system_terra.md"
             ],
             "NAVARA": ["jhd_persona_navara.md", "jhd_role_navara.md"],
             "BIGM": ["jhd_persona_bigm.md", "jhd_role_bigm.md"]
