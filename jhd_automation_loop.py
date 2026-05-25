@@ -15,7 +15,6 @@ except:
     st.error("⚠️ API Key Error")
     st.stop()
 
-# สร้าง Instance จาก Class ที่อยู่ในไฟล์ jhd_workflow_manager.py
 jhd_manager = JHDWorkflowManager(API_KEY)
 
 if "messages" not in st.session_state: 
