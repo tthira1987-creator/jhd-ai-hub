@@ -2,10 +2,6 @@ import os
 import streamlit as st
 from openai import OpenAI
 
-# ==========================================
-# ⚙️ JHD INTELLIGENCE: BACKEND AUTOMATION
-# ==========================================
-
 class JHDAutomationSystem:
     def __init__(self, api_key):
         self.client = OpenAI(
@@ -19,10 +15,14 @@ class JHDAutomationSystem:
             "NOTE": [
                 "jhd_persona_note.md", "jhd_role_note.md", 
                 "jhd_formula_pricing_note.md", "jhd_company_pitch_note.md", 
-                "jhd_script_sales_note.md", "jhd_script_quick_reply_note.md" ,
-                "jhd_sales_intelligence_note.md", "jhd_sales_strategy_note.md", "jhd_sales_framework_note.md"
+                "jhd_script_sales_note.md", "jhd_script_quick_reply_note.md",
+                "jhd_sales_intelligence_note.md", "jhd_sales_strategy_note.md",
+                "jhd_sales_framework_note.md"
             ],
-            "TERRA": ["jhd_persona_terra.md", "jhd_role_terra.md", "jhd_company_core_terra.md", "jhd_master_sop_terra.md"],
+            "TERRA": [
+                "jhd_persona_terra.md", "jhd_role_terra.md", 
+                "jhd_company_core_terra.md", "jhd_master_sop_terra.md"
+            ],
             "NAVARA": ["jhd_persona_navara.md", "jhd_role_navara.md"],
             "BIGM": ["jhd_persona_bigm.md", "jhd_role_bigm.md"]
         }
@@ -49,8 +49,7 @@ class JHDAutomationSystem:
         )
         return response.choices[0].message.content
 
-  def run_full_workflow(self, chat_history):
-        # 1. จัดเรียงประวัติแชทให้บอทอ่านง่ายๆ
+    def run_full_workflow(self, chat_history):
         chat_context = "--- ประวัติการสนทนาที่ผ่านมา ---\n"
         for msg in chat_history[:-1]: 
             sender = "เจ้านาย" if msg["role"] == "user" else "น้อง SUN"
@@ -58,12 +57,10 @@ class JHDAutomationSystem:
         
         latest_message = chat_history[-1]['content']
         
-        # 2. ป้อนข้อมูลให้ห้องประชุมหลังบ้าน
         full_prompt = f"{chat_context}\n--- ข้อความล่าสุด ---\nเจ้านายพิมพ์มาว่า: {latest_message}"
         internal_memory = [{"role": "user", "content": full_prompt}]
         workflow_sequence = ["SUN", "NOTE", "TERRA", "NAVARA", "BIGM"]
         
-        # 📌 อัปเดต: สอนให้บอทแยกแยะคำถามทั่วไป กับ การสั่งงาน
         for agent in workflow_sequence:
             trigger_msg = {
                 "role": "user", 
@@ -73,7 +70,6 @@ class JHDAutomationSystem:
             agent_response = self._call_agent(agent, internal_memory)
             internal_memory.append({"role": "assistant", "content": f"[{agent} OUTPUT]:\n{agent_response}"})
 
-        # 📌 อัปเดต: สั่ง SUN ห้ามหลุดคำว่า [SUN OUTPUT] เด็ดขาด
         final_instruction = {
             "role": "user", 
             "content": """ถึง SUN: คุณคือ 'น้องซัน' เลขาหน้าห้อง 
@@ -85,9 +81,7 @@ class JHDAutomationSystem:
         }
         internal_memory.append(final_instruction)
         return self._call_agent("SUN", internal_memory)
-# ==========================================
-# 🚀 ส่วนแสดงผลบนหน้าเว็บ Streamlit (Chat UI)
-# ==========================================
+
 if __name__ == "__main__":
     st.set_page_config(page_title="JHD Intelligence", page_icon="☀️", layout="centered")
     st.title("☀️ น้อง SUN (JHD Secretary)")
@@ -116,7 +110,6 @@ if __name__ == "__main__":
 
         with st.chat_message("assistant"):
             with st.spinner("น้องซันกำลังประมวลผล รอสักครู่นะคะ..."):
-                # 📌 อัปเดต: โยนก้อนประวัติแชท (messages) ทั้งหมดเข้าไปในระบบ
                 result = jhd_system.run_full_workflow(st.session_state.messages)
                 st.markdown(result)
         
