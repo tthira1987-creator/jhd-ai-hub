@@ -5,7 +5,7 @@ class JHDWorkflowManager:
     def __init__(self, api_key):
         self.client = OpenAI(api_key=api_key, base_url="https://openrouter.ai/api/v1")
         self.model = "google/gemini-2.5-flash"
-       self.agent_files = {
+        self.agent_files = {
             "SUN": ["jhd_persona_sun.md", "jhd_role_sun.md"],
             "NOTE": [
                 "jhd_persona_note.md", "jhd_role_note.md", 
