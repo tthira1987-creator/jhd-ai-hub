@@ -88,21 +88,39 @@ class JHDAutomationSystem:
         return final_output
 
 # ==========================================
-# 🧪 วิธีการเรียกใช้งาน (ทดสอบใน Terminal)
+# 🚀 ส่วนแสดงผลบนหน้าเว็บ Streamlit
 # ==========================================
 if __name__ == "__main__":
     import streamlit as st
-    API_KEY = st.secrets["OPENROUTER_API_KEY"]
     
+    # 1. ตั้งค่าหน้าตาเว็บ
+    st.set_page_config(page_title="JHD AI Workflow", page_icon="☀️")
+    st.title("☀️ JHD Intelligence System")
+    st.markdown("**Workflow:** `Human` ➔ `SUN` ➔ `NOTE` ➔ `TERRA` ➔ `NAVARA` ➔ `BIGM` ➔ `SUN` ➔ `Output`")
+    
+    # 2. ดึง API Key จากหลังบ้าน Streamlit
+    try:
+        API_KEY = st.secrets["OPENROUTER_API_KEY"]
+    except KeyError:
+        st.error("⚠️ ไม่พบ API Key! กรุณาไปใส่ 'OPENROUTER_API_KEY' ในเมนู Settings > Secrets ของ Streamlit ครับ")
+        st.stop()
+        
     # สร้างระบบ
     jhd_system = JHDAutomationSystem(API_KEY)
     
-    # รับคำสั่งจาก User
-    task = "ลูกค้าอยากทำป้ายหน้าร้านกาแฟ ขนาด 2x1 เมตร มีโลโก้แล้ว งบ 15,000 บาท ขอแบบทนแดดทนฝน"
+    # 3. สร้างกล่องรับข้อความและปุ่มกด
+    user_prompt = st.text_area("💬 พิมพ์บรีฟงานหรือข้อความจากลูกค้าตรงนี้:", height=100, 
+                               placeholder="เช่น ลูกค้าอยากทำป้ายหน้าร้านกาแฟ ขนาด 2x1 เมตร งบ 15,000 บาท...")
     
-    # รันสายพานหลังบ้าน (รอสักครู่)
-    result = jhd_system.run_full_workflow(task)
-    
-    # แสดงผลลัพธ์สุดท้ายที่ผ่านการกรองจาก SUN แล้ว
-    print("================ FINAL OUTPUT FROM SUN ================")
-    print(result)
+    if st.button("🚀 เริ่มรันระบบ Automation", type="primary"):
+        if user_prompt.strip() == "":
+            st.warning("⚠️ กรุณาพิมพ์ข้อความก่อนกดรันระบบครับ")
+        else:
+            # ขึ้นสถานะโหลดหมุนๆ ระหว่างบอทคุยกัน
+            with st.spinner("🤖 บอทกำลังประชุมกันหลังบ้าน (ใช้เวลาประมาณ 10-30 วินาที)..."):
+                result = jhd_system.run_full_workflow(user_prompt)
+            
+            # โชว์ผลลัพธ์สุดท้าย
+            st.success("✅ ประมวลผลเสร็จสิ้น!")
+            st.markdown("### 📋 Final Output from SUN")
+            st.info(result)
