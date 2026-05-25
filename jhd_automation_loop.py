@@ -14,7 +14,6 @@ class JHDAutomationSystem:
         )
         self.model = "google/gemini-2.5-flash"
         
-        # 📌 อัปเดต: ใส่ไฟล์คัมภีร์ทั้งหมดให้ตรงกับหน้าที่
         self.agent_files = {
             "SUN": ["jhd_persona_sun.md", "jhd_role_sun.md"],
             "NOTE": [
@@ -49,30 +48,39 @@ class JHDAutomationSystem:
         )
         return response.choices[0].message.content
 
-    def run_full_workflow(self, user_prompt):
-        internal_memory = [{"role": "user", "content": f"ข้อความจากลูกค้า/เจ้านาย: {user_prompt}"}]
+    # 📌 อัปเดต: เปลี่ยนจากการรับแค่คำสั่งเดียว เป็นรับ "ประวัติแชททั้งหมด"
+    def run_full_workflow(self, chat_history):
+        # 1. จัดเรียงประวัติแชทให้บอทอ่านง่ายๆ
+        chat_context = "--- ประวัติการสนทนาที่ผ่านมา ---\n"
+        for msg in chat_history[:-1]: # ดึงมาหมดยกเว้นข้อความล่าสุด
+            sender = "เจ้านาย/ลูกค้า" if msg["role"] == "user" else "น้อง SUN"
+            chat_context += f"{sender}: {msg['content']}\n"
+        
+        latest_message = chat_history[-1]['content']
+        
+        # 2. ป้อนข้อมูลให้ห้องประชุมหลังบ้าน
+        full_prompt = f"{chat_context}\n--- ข้อความล่าสุด ---\nเจ้านาย/ลูกค้าพิมพ์มาว่า: {latest_message}"
+        internal_memory = [{"role": "user", "content": full_prompt}]
         workflow_sequence = ["SUN", "NOTE", "TERRA", "NAVARA", "BIGM"]
         
-        # 📌 อัปเดต: สั่งบอทตัวที่ไม่เกี่ยวให้ข้ามงานไปเลย (ลดความเวิ่นเว้อ)
         for agent in workflow_sequence:
             trigger_msg = {
                 "role": "user", 
-                "content": f"ถึง {agent}: วิเคราะห์คำสั่งล่าสุด หากคุณมีข้อมูลในคู่มือที่ตรงกับคำถาม ให้ดึงข้อมูลนั้นมาตอบให้ครบถ้วน แต่หากคำสั่งนี้ 'ไม่เกี่ยวกับหน้าที่คุณเลย' ให้ตอบแค่คำว่า 'PASS' สั้นๆ คำเดียว ห้ามแต่งเรื่องเพิ่ม"
+                "content": f"ถึง {agent}: ให้อ่าน 'ประวัติการสนทนา' และ 'ข้อความล่าสุด' ด้านบน หากคำสั่งล่าสุดเกี่ยวเนื่องกับหน้าที่ของคุณหรือต่อเนื่องจากเรื่องเดิม ให้ดึงข้อมูลมาตอบให้ครบถ้วน แต่หากไม่เกี่ยวกับหน้าที่คุณเลย ให้ตอบแค่คำว่า 'PASS'"
             }
             internal_memory.append(trigger_msg)
             agent_response = self._call_agent(agent, internal_memory)
             internal_memory.append({"role": "assistant", "content": f"[{agent} OUTPUT]:\n{agent_response}"})
 
-        # 📌 อัปเดต: สั่ง SUN ให้เลิกเป็นนักข่าว แล้วเป็นคนส่งของแทน
         final_instruction = {
             "role": "user", 
             "content": """ถึง SUN: คุณคือ 'น้องซัน' เลขาหน้าห้อง 
 กฎการตอบ:
-1. หากลูกค้าขอข้อมูล (เช่น ประวัติบริษัท, สคริปต์, ราคา) ให้คุณไปดึง 'เนื้อหาจริงๆ' ที่เพื่อนร่วมทีมพิมพ์ไว้ด้านบน มาตอบกลับลูกค้าโดยตรงทันที
-2. ห้าม! เล่ากระบวนการทำงาน ห้ามบอกว่าใครทำอะไร (เช่น ห้ามพิมพ์ว่า 'NOTE แจ้งว่า...', 'TERRA วิเคราะห์ว่า...')
-3. ห้ามพิมพ์ชื่อเพื่อนร่วมทีม หรือคำว่า [OUTPUT], PASS ออกมาให้เห็นเด็ดขาด
-4. ปรับเนื้อหาให้เป็นระเบียบ อ่านง่าย พร้อมก๊อปปี้ไปส่งต่อใน LINE ได้เลย
-5. ตอบด้วยความสุภาพ เป็นกันเอง และสั้นกระชับที่สุดเท่าที่ทำได้"""
+1. ให้อ่านผลลัพธ์จากเพื่อนร่วมทีม ถ้ามีข้อมูลตรงกับคำถามล่าสุด ให้เอามาตอบ
+2. หากเป็นบทสนทนาต่อเนื่อง ให้ตอบให้ลื่นไหลไปกับประวัติการคุยเดิม
+3. ห้ามอธิบายกระบวนการทำงาน ห้ามบอกว่าใครทำอะไร
+4. ห้ามพิมพ์ชื่อเพื่อนร่วมทีม หรือคำว่า [OUTPUT], PASS
+5. ตอบด้วยความสุภาพ เป็นกันเอง และสั้นกระชับ"""
         }
         internal_memory.append(final_instruction)
         return self._call_agent("SUN", internal_memory)
@@ -107,8 +115,9 @@ if __name__ == "__main__":
             st.markdown(prompt)
 
         with st.chat_message("assistant"):
-            with st.spinner("น้องซันกำลังไปค้นข้อมูลให้ค่ะ รอสักครู่นะคะ..."):
-                result = jhd_system.run_full_workflow(prompt)
+            with st.spinner("น้องซันกำลังประมวลผล รอสักครู่นะคะ..."):
+                # 📌 อัปเดต: โยนก้อนประวัติแชท (messages) ทั้งหมดเข้าไปในระบบ
+                result = jhd_system.run_full_workflow(st.session_state.messages)
                 st.markdown(result)
         
         st.session_state.messages.append({"role": "assistant", "content": result})
