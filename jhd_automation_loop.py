@@ -49,43 +49,42 @@ class JHDAutomationSystem:
         )
         return response.choices[0].message.content
 
-    # 📌 อัปเดต: เปลี่ยนจากการรับแค่คำสั่งเดียว เป็นรับ "ประวัติแชททั้งหมด"
-    def run_full_workflow(self, chat_history):
+  def run_full_workflow(self, chat_history):
         # 1. จัดเรียงประวัติแชทให้บอทอ่านง่ายๆ
         chat_context = "--- ประวัติการสนทนาที่ผ่านมา ---\n"
-        for msg in chat_history[:-1]: # ดึงมาหมดยกเว้นข้อความล่าสุด
-            sender = "เจ้านาย/ลูกค้า" if msg["role"] == "user" else "น้อง SUN"
+        for msg in chat_history[:-1]: 
+            sender = "เจ้านาย" if msg["role"] == "user" else "น้อง SUN"
             chat_context += f"{sender}: {msg['content']}\n"
         
         latest_message = chat_history[-1]['content']
         
         # 2. ป้อนข้อมูลให้ห้องประชุมหลังบ้าน
-        full_prompt = f"{chat_context}\n--- ข้อความล่าสุด ---\nเจ้านาย/ลูกค้าพิมพ์มาว่า: {latest_message}"
+        full_prompt = f"{chat_context}\n--- ข้อความล่าสุด ---\nเจ้านายพิมพ์มาว่า: {latest_message}"
         internal_memory = [{"role": "user", "content": full_prompt}]
         workflow_sequence = ["SUN", "NOTE", "TERRA", "NAVARA", "BIGM"]
         
+        # 📌 อัปเดต: สอนให้บอทแยกแยะคำถามทั่วไป กับ การสั่งงาน
         for agent in workflow_sequence:
             trigger_msg = {
                 "role": "user", 
-                "content": f"ถึง {agent}: ให้อ่าน 'ประวัติการสนทนา' และ 'ข้อความล่าสุด' ด้านบน หากคำสั่งล่าสุดเกี่ยวเนื่องกับหน้าที่ของคุณหรือต่อเนื่องจากเรื่องเดิม ให้ดึงข้อมูลมาตอบให้ครบถ้วน แต่หากไม่เกี่ยวกับหน้าที่คุณเลย ให้ตอบแค่คำว่า 'PASS'"
+                "content": f"ถึง {agent}: โปรดแยกแยะข้อความล่าสุด... 1) หากเป็นการ 'ถามข้อมูลทั่วไป/ถามคำศัพท์' ที่มีในคู่มือ ให้คุณอธิบายตอบไปตรงๆ แบบยืดหยุ่น 2) หากเป็นการ 'สั่งวิเคราะห์ลูกค้า/หน้างาน' ให้ใช้ Format มาตรฐานแบบจัดเต็ม 3) หากไม่เกี่ยวกับหน้าที่คุณ ให้ตอบ 'PASS' คำเดียว"
             }
             internal_memory.append(trigger_msg)
             agent_response = self._call_agent(agent, internal_memory)
             internal_memory.append({"role": "assistant", "content": f"[{agent} OUTPUT]:\n{agent_response}"})
 
+        # 📌 อัปเดต: สั่ง SUN ห้ามหลุดคำว่า [SUN OUTPUT] เด็ดขาด
         final_instruction = {
             "role": "user", 
             "content": """ถึง SUN: คุณคือ 'น้องซัน' เลขาหน้าห้อง 
 กฎการตอบ:
-1. ให้อ่านผลลัพธ์จากเพื่อนร่วมทีม ถ้ามีข้อมูลตรงกับคำถามล่าสุด ให้เอามาตอบ
-2. หากเป็นบทสนทนาต่อเนื่อง ให้ตอบให้ลื่นไหลไปกับประวัติการคุยเดิม
-3. ห้ามอธิบายกระบวนการทำงาน ห้ามบอกว่าใครทำอะไร
-4. ห้ามพิมพ์ชื่อเพื่อนร่วมทีม หรือคำว่า [OUTPUT], PASS
-5. ตอบด้วยความสุภาพ เป็นกันเอง และสั้นกระชับ"""
+1. อ่านข้อมูลจากเพื่อนร่วมทีมและสรุปตอบเจ้านายให้ตรงคำถามที่สุด ตอบแบบยืดหยุ่น คุยเป็นธรรมชาติเหมือนมนุษย์
+2. ห้ามอธิบายกระบวนการทำงานหลังบ้าน ห้ามบอกว่าใครทำอะไร
+3. 🚨 กฎเหล็กสูงสุด: ห้ามมีคำว่า [SUN OUTPUT]:, [OUTPUT], หรือ PASS หลุดออกมาในข้อความเด็ดขาด!
+4. ตอบด้วยความสุภาพ เป็นกันเอง"""
         }
         internal_memory.append(final_instruction)
         return self._call_agent("SUN", internal_memory)
-
 # ==========================================
 # 🚀 ส่วนแสดงผลบนหน้าเว็บ Streamlit (Chat UI)
 # ==========================================
