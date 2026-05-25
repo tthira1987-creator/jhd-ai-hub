@@ -12,15 +12,19 @@ class JHDWorkflowManager:
                 "jhd_formula_pricing_note.md", "jhd_company_pitch_note.md", 
                 "jhd_script_sales_note.md", "jhd_script_quick_reply_note.md",
                 "jhd_sales_intelligence_note.md", "jhd_sales_strategy_note.md",
-                "jhd_sales_framework_note.md", "jhd_product_jhd3dletter.md"
+                "jhd_sales_framework_note.md", "jhd_product_jhd3dletter.md",
+                "jhd_product_jhd_hybrid_letter.md"
             ],
             "TERRA": [
                 "jhd_persona_terra.md", "jhd_role_terra.md", 
                 "jhd_company_core_terra.md", "jhd_master_sop_terra.md",
-                "jhd_service_system_terra.md", "jhd_product_jhd3dletter.md"
+                "jhd_service_system_terra.md", "jhd_product_jhd3dletter.md",
+                "jhd_product_jhd_hybrid_letter.md"
             ],
-            "NAVARA": ["jhd_persona_navara.md", "jhd_role_navara.md", "jhd_product_jhd3dletter.md"],
-            "BIGM": ["jhd_persona_bigm.md", "jhd_role_bigm.md", "jhd_product_jhd3dletter.md"]
+            "NAVARA": ["jhd_persona_navara.md", "jhd_role_navara.md", "jhd_product_jhd3dletter.md",
+                       "jhd_product_jhd_hybrid_letter.md"],
+            "BIGM": ["jhd_persona_bigm.md", "jhd_role_bigm.md", "jhd_product_jhd3dletter.md",
+                     "jhd_product_jhd_hybrid_letter.md"],
         }
 
     def _load_system_prompt(self, agent_name):
