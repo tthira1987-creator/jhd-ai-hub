@@ -5,36 +5,48 @@ from jhd_workflow_manager import JHDWorkflowManager
 st.set_page_config(page_title="JHD Intelligence", page_icon="☀️", layout="centered")
 
 # ==========================================
-# 🔒 ระบบ LOGIN (ดักไว้ก่อนโหลดหน้าเว็บหลัก)
+# 🔒 ระบบ LOGIN (รายบุคคล)
 # ==========================================
 def check_password():
-    def password_entered():
-        # เช็กรหัสผ่านที่พิมพ์ กับรหัสใน Secrets
-        if st.session_state["password"] == st.secrets["JHD_APP_PASSWORD"]:
+    def login_attempt():
+        user = st.session_state["username_input"].lower().strip()
+        pwd = st.session_state["password_input"]
+        
+        # เช็กว่ามีชื่อผู้ใช้นี้ในระบบไหม และรหัสผ่านตรงกันไหม
+        if user in st.secrets["credentials"] and st.secrets["credentials"][user] == pwd:
             st.session_state["password_correct"] = True
-            del st.session_state["password"]  # ลบรหัสออกจากระบบทันทีเพื่อความปลอดภัย
+            st.session_state["current_user"] = user # บันทึกไว้ว่าใครกำลังใช้งาน
+            del st.session_state["password_input"]  # ลบรหัสออกจากระบบเพื่อความปลอดภัย
         else:
             st.session_state["password_correct"] = False
 
     if "password_correct" not in st.session_state:
-        st.title("🔒 Restricted Access")
-        st.text_input("กรุณาใส่รหัสผ่านเพื่อเข้าใช้งาน JHD Intelligence:", type="password", on_change=password_entered, key="password")
+        st.title("🔒 JHD Intelligence Access")
+        st.text_input("👤 Username", key="username_input")
+        st.text_input("🔑 Password", type="password", key="password_input")
+        st.button("เข้าสู่ระบบ", on_click=login_attempt)
         return False
     elif not st.session_state["password_correct"]:
-        st.title("🔒 Restricted Access")
-        st.text_input("กรุณาใส่รหัสผ่านเพื่อเข้าใช้งาน JHD Intelligence:", type="password", on_change=password_entered, key="password")
-        st.error("⚠️ รหัสผ่านไม่ถูกต้อง")
+        st.title("🔒 JHD Intelligence Access")
+        st.text_input("👤 Username", key="username_input")
+        st.text_input("🔑 Password", type="password", key="password_input")
+        st.button("เข้าสู่ระบบ", on_click=login_attempt)
+        st.error("⚠️ Username หรือ รหัสผ่านไม่ถูกต้อง")
         return False
     return True
 
-# ถ้ายังไม่ล็อกอิน ให้หยุดการทำงานของโค้ดตรงนี้ทันที
 if not check_password():
     st.stop()
 
 # ==========================================
-# ☀️ โค้ดหลักของน้อง SUN (จะทำงานเมื่อล็อกอินผ่าน)
+# ☀️ โค้ดหลักของน้อง SUN 
 # ==========================================
 st.sidebar.title("⚙️ System Control")
+# ดึงชื่อคนที่ล็อกอินมาโชว์ในแถบด้านข้าง
+current_user = st.session_state.get('current_user', 'User').upper()
+st.sidebar.success(f"👤 เข้าสู่ระบบโดย: **{current_user}**")
+st.sidebar.markdown("---")
+
 mode = st.sidebar.radio("สถานะโหมดใช้งาน:", ["Internal Mode (Lead)", "Service Mode (Customer)"])
 
 st.title("☀️ น้อง SUN (JHD Secretary)")
