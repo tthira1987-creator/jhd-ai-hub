@@ -50,19 +50,16 @@ current_user = st.session_state.get('current_user', 'User').upper()
 st.sidebar.success(f"👤 เข้าสู่ระบบโดย: **{current_user}**")
 st.sidebar.markdown("---")
 
-# ปุ่มเลือกโหมด
 selected_mode = st.sidebar.radio(
     "สถานะโหมดใช้งาน:", 
     ["Internal Mode (Lead)", "Service Mode (Customer)"],
     index=0 if st.session_state.active_mode == "Internal Mode (Lead)" else 1
 )
 
-# ดักจับการเปลี่ยนโหมด
 if selected_mode != st.session_state.active_mode:
     if len(st.session_state.messages) > 0:
         st.warning(f"⚠️ คุณกำลังสลับไปยังโหมด **{selected_mode}** ระบบจะทำการล้างแชทเดิมเพื่อเริ่มใหม่ ต้องการบันทึกบทสนทนานี้ไว้หรือไม่?")
         
-        # เตรียมไฟล์ Text สำหรับดาวน์โหลด
         chat_log = "=== JHD Intelligence Chat Log ===\n\n"
         for msg in st.session_state.messages:
             role = "ผู้ใช้งาน" if msg['role'] == 'user' else "SUN"
@@ -84,7 +81,7 @@ if selected_mode != st.session_state.active_mode:
                 st.session_state.active_mode = selected_mode
                 st.rerun()
         
-        st.stop() # หยุดการทำงานชั่วคราวจนกว่าจะกดเลือก
+        st.stop()
     else:
         st.session_state.active_mode = selected_mode
 
