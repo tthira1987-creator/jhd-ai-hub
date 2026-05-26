@@ -6,7 +6,6 @@ class JHDWorkflowManager:
         self.client = OpenAI(api_key=api_key, base_url="https://openrouter.ai/api/v1")
         self.model = "google/gemini-2.5-flash"
         
-        # ถอดไฟล์ฐานข้อมูล 3D Letter ทั้งหมดออกจากระบบแล้ว
         self.agent_files = {
             "SUN": ["jhd_persona_sun.md", "jhd_role_sun.md"],
             "NOTE": [
@@ -44,10 +43,9 @@ class JHDWorkflowManager:
         response = self.client.chat.completions.create(model=self.model, messages=messages, max_tokens=1500, temperature=0.7)
         return response.choices[0].message.content
 
-   def run_workflow(self, chat_history, mode):
+    def run_workflow(self, chat_history, mode):
         latest_message = chat_history[-1]['content']
         
-        # 1. แยกว่าใครเป็นคนคุย เพื่อตัดคำว่า Lead ออกจากสมอง AI ในโหมดลูกค้า
         speaker = "คุณลูกค้า" if mode == "Service Mode (Customer)" else "Lead"
         internal_memory = [{"role": "user", "content": f"{speaker} พิมพ์มาว่า: {latest_message}"}]
 
@@ -58,7 +56,6 @@ class JHDWorkflowManager:
                 analysis = self._call_agent(agent, internal_memory)
                 internal_memory.append({"role": "assistant", "content": f"[{agent} Analysis]: {analysis}"})
             
-            # ดักคอ SUN โหมดลูกค้า
             final_prompt = """ถึง SUN: ตอนนี้คุณคือ "แอดมินบริการลูกค้า" ตอบแชท "ลูกค้า" ยึดกฎเหล็กนี้:
             1. ห้ามทักทายซ้ำ: หากมีการทักทายไปแล้วในประวัติการแชท ห้ามพิมพ์สวัสดีซ้ำอีกเด็ดขาด ให้ตอบคำถามต่อเนื่องได้เลย
             2. การเรียกชื่อ: หากลูกค้าแจ้งชื่อ ให้เรียกชื่อลูกค้า หากยังไม่ทราบเรียก "คุณลูกค้า"
@@ -66,17 +63,14 @@ class JHDWorkflowManager:
             4. การแบ่งกล่องข้อความ: ใช้ [SPLIT] คั่นเพื่อแบ่งกล่องให้เป็นธรรมชาติ อนุญาตให้แบ่ง 2-3 กล่อง"""
             
         else:
-            # Internal Mode
             for agent in ["NOTE", "TERRA", "NAVARA", "BIGM"]:
-                # อัปเดต: สั่งลูกน้องให้ตอบคำถามต่อเนื่อง ห้ามเอ๋อ
                 instruction = f"ถึง {agent}: คุณอยู่ใน Internal Mode หาก Lead ถามคำถามต่อเนื่อง ให้ดึงข้อมูลมาตอบให้ตรงประเด็นที่สุด ฟันธงมาเลย"
                 internal_memory.append({"role": "user", "content": instruction})
                 analysis = self._call_agent(agent, internal_memory)
                 internal_memory.append({"role": "assistant", "content": f"[{agent} Analysis]: {analysis}"})
             
-            # ดักคอ SUN โหมด Lead (แก้ปัญหาลูปหลอน)
             final_prompt = """ถึง SUN: สรุปข้อมูลจากทีมงานเพื่อตอบ Lead โดยต้องทำตามกฎนี้เคร่งครัด:
-            1. ตอบคำถามทันทีและห้ามทักทายซ้ำ: หาก Lead ถามคำถามต่อเนื่อง ให้ตอบเข้าประเด็นทันที (ห้ามพิมพ์ประโยค "สวัสดีครับ Lead วันนี้มีโปรเจกต์..." ซ้ำเด็ดขาดหากเคยทักทายไปแล้ว)
+            1. ตอบคำถามทันทีและห้ามทักทายซ้ำ: หาก Lead ถามคำถามต่อเนื่อง ให้ตอบเข้าประเด็นทันที (ห้ามพิมพ์ประโยคทักทายซ้ำเด็ดขาดหากเคยทักทายไปแล้ว)
             2. การจัดรูปแบบข้อความ (บังคับ!): หากมีการแจกแจงตัวเลือก หรือลิสต์เป็นข้อๆ ต้องขึ้นบรรทัดใหม่เสมอ
             3. การแบ่งกล่องข้อความ: แบ่งกล่องข้อความสูงสุด 2-3 กล่อง (ใช้ [SPLIT] คั่น)"""
 
