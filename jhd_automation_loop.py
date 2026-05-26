@@ -12,11 +12,10 @@ def check_password():
         user = st.session_state["username_input"].lower().strip()
         pwd = st.session_state["password_input"]
         
-        # เช็กว่ามีชื่อผู้ใช้นี้ในระบบไหม และรหัสผ่านตรงกันไหม
         if user in st.secrets["credentials"] and st.secrets["credentials"][user] == pwd:
             st.session_state["password_correct"] = True
-            st.session_state["current_user"] = user # บันทึกไว้ว่าใครกำลังใช้งาน
-            del st.session_state["password_input"]  # ลบรหัสออกจากระบบเพื่อความปลอดภัย
+            st.session_state["current_user"] = user 
+            del st.session_state["password_input"]  
         else:
             st.session_state["password_correct"] = False
 
@@ -39,16 +38,61 @@ if not check_password():
     st.stop()
 
 # ==========================================
-# ☀️ โค้ดหลักของน้อง SUN 
+# ⚙️ ระบบควบคุมและเปลี่ยนโหมด (ล้างแชท)
 # ==========================================
+if "active_mode" not in st.session_state:
+    st.session_state.active_mode = "Internal Mode (Lead)"
+if "messages" not in st.session_state: 
+    st.session_state.messages = []
+
 st.sidebar.title("⚙️ System Control")
-# ดึงชื่อคนที่ล็อกอินมาโชว์ในแถบด้านข้าง
 current_user = st.session_state.get('current_user', 'User').upper()
 st.sidebar.success(f"👤 เข้าสู่ระบบโดย: **{current_user}**")
 st.sidebar.markdown("---")
 
-mode = st.sidebar.radio("สถานะโหมดใช้งาน:", ["Internal Mode (Lead)", "Service Mode (Customer)"])
+# ปุ่มเลือกโหมด
+selected_mode = st.sidebar.radio(
+    "สถานะโหมดใช้งาน:", 
+    ["Internal Mode (Lead)", "Service Mode (Customer)"],
+    index=0 if st.session_state.active_mode == "Internal Mode (Lead)" else 1
+)
 
+# ดักจับการเปลี่ยนโหมด
+if selected_mode != st.session_state.active_mode:
+    if len(st.session_state.messages) > 0:
+        st.warning(f"⚠️ คุณกำลังสลับไปยังโหมด **{selected_mode}** ระบบจะทำการล้างแชทเดิมเพื่อเริ่มใหม่ ต้องการบันทึกบทสนทนานี้ไว้หรือไม่?")
+        
+        # เตรียมไฟล์ Text สำหรับดาวน์โหลด
+        chat_log = "=== JHD Intelligence Chat Log ===\n\n"
+        for msg in st.session_state.messages:
+            role = "ผู้ใช้งาน" if msg['role'] == 'user' else "SUN"
+            chat_log += f"[{role}]:\n{msg['content']}\n\n"
+            chat_log += "-"*40 + "\n"
+        
+        col1, col2 = st.columns(2)
+        with col1:
+            st.download_button(
+                label="💾 บันทึกเป็นไฟล์ Text & เริ่มใหม่",
+                data=chat_log,
+                file_name=f"JHD_ChatLog_{int(time.time())}.txt",
+                mime="text/plain",
+                on_click=lambda: st.session_state.update({"messages": [], "active_mode": selected_mode})
+            )
+        with col2:
+            if st.button("🗑️ ไม่บันทึก (ล้างแชทเลย)"):
+                st.session_state.messages = []
+                st.session_state.active_mode = selected_mode
+                st.rerun()
+        
+        st.stop() # หยุดการทำงานชั่วคราวจนกว่าจะกดเลือก
+    else:
+        st.session_state.active_mode = selected_mode
+
+mode = st.session_state.active_mode
+
+# ==========================================
+# ☀️ โค้ดหลักของน้อง SUN 
+# ==========================================
 st.title("☀️ น้อง SUN (JHD Secretary)")
 st.caption(f"Status: {mode}")
 
@@ -59,9 +103,6 @@ except:
     st.stop()
 
 jhd_manager = JHDWorkflowManager(API_KEY)
-
-if "messages" not in st.session_state: 
-    st.session_state.messages = []
 
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"]): 
