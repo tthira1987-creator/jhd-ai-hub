@@ -48,18 +48,30 @@ class JHDWorkflowManager:
 
         if mode == "Service Mode (Customer)":
             for agent in ["NOTE", "TERRA", "NAVARA", "BIGM"]:
-                instruction = f"ถึง {agent}: วิเคราะห์ข้อมูลลูกค้าตาม SOP Step 1 หากไม่ครบให้ร่างคำถามกลับมา อย่าเพิ่งเสนอราคา"
+                instruction = f"ถึง {agent}: วิเคราะห์ข้อมูลลูกค้าตาม SOP Step 1 โดยให้เสนอ 'ราคาประเมินเบื้องต้น' ทันทีที่ทำได้ คุยให้กระชับที่สุด"
                 internal_memory.append({"role": "user", "content": instruction})
                 analysis = self._call_agent(agent, internal_memory)
                 internal_memory.append({"role": "assistant", "content": f"[{agent} Analysis]: {analysis}"})
-            final_prompt = "ถึง SUN: สรุปคำแนะนำจาก NOTE มาตอบลูกค้าให้ดูเป็นธรรมชาติที่สุด ห้ามพูดเรื่องระบบ"
+            
+            # ดักคอ SUN โหมดลูกค้า
+            final_prompt = """ถึง SUN: สรุปคำแนะนำจากทีมงานเพื่อตอบลูกค้า โดยต้องทำตามกฎนี้เคร่งครัด:
+            1. ห้ามกล่าวสวัสดีซ้ำเด็ดขาด
+            2. สรุปให้สั้นที่สุด ห้ามเกิน 3 บรรทัดต่อ 1 กล่องข้อความ ใช้ [SPLIT] คั่นระหว่างกล่อง
+            3. ห้ามอธิบายการทำงานของระบบ ห้ามพูดถึงชื่อ Agent เข้าประเด็นทันที"""
+            
         else:
+            # Internal Mode
             for agent in ["NOTE", "TERRA", "NAVARA", "BIGM"]:
-                instruction = f"ถึง {agent}: คุณอยู่ใน Internal Mode (โหมดทำงานกับ Lead) 1. ให้คำปรึกษาที่ลึกซึ้ง 2. วิเคราะห์งานได้เลยเต็มที่ ไม่ต้องถามข้อมูลเบื้องต้นซ้ำซ้อน"
+                instruction = f"ถึง {agent}: คุณอยู่ใน Internal Mode ให้คำปรึกษา Lead แบบกระชับที่สุด ฟันธงมาเลย ไม่ต้องอธิบายน้ำท่วมทุ่ง"
                 internal_memory.append({"role": "user", "content": instruction})
                 analysis = self._call_agent(agent, internal_memory)
                 internal_memory.append({"role": "assistant", "content": f"[{agent} Analysis]: {analysis}"})
-            final_prompt = "ถึง SUN: ตอบคำถามของ Lead ในฐานะเลขาฯ มืออาชีพ โดยใช้ความรู้จากทีมงานตอบให้ตรงประเด็น ยืดหยุ่น เป็นธรรมชาติ"
+            
+            # ดักคอ SUN โหมด Lead
+            final_prompt = """ถึง SUN: สรุปข้อมูลจากทีมงานเพื่อตอบ Lead โดยต้องทำตามกฎนี้เคร่งครัด:
+            1. ห้ามกล่าวสวัสดีซ้ำเด็ดขาด เข้าประเด็นทันที
+            2. ห้ามตอบยาวเป็นพรืด ให้หั่นข้อความสั้นๆ แบบแชทไลน์ แล้วคั่นด้วยคำว่า [SPLIT] เท่านั้น
+            3. ตอบให้ตรงคำถามที่สุด ถ้าขอตัวเลือกที่ถูกสุด ให้ตอบชื่อรุ่นและราคามาเลย ไม่ต้องอธิบายยืดยาว"""
 
         internal_memory.append({"role": "user", "content": final_prompt})
         return self._call_agent("SUN", internal_memory)
