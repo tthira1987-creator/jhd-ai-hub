@@ -13,18 +13,22 @@ class JHDWorkflowManager:
                 "jhd_script_sales_note.md", "jhd_script_quick_reply_note.md",
                 "jhd_sales_intelligence_note.md", "jhd_sales_strategy_note.md",
                 "jhd_sales_framework_note.md", "jhd_product_jhd3dletter.md",
-                "jhd_product_jhd_hybrid_letter.md"
+                "jhd_product_jhd_hybrid_letter.md", "jhd_product_jhd_standard_letter.md"
             ],
             "TERRA": [
                 "jhd_persona_terra.md", "jhd_role_terra.md", 
                 "jhd_company_core_terra.md", "jhd_master_sop_terra.md",
                 "jhd_service_system_terra.md", "jhd_product_jhd3dletter.md",
-                "jhd_product_jhd_hybrid_letter.md"
+                "jhd_product_jhd_hybrid_letter.md", "jhd_product_jhd_standard_letter.md"
             ],
-            "NAVARA": ["jhd_persona_navara.md", "jhd_role_navara.md", "jhd_product_jhd3dletter.md",
-                       "jhd_product_jhd_hybrid_letter.md"],
-            "BIGM": ["jhd_persona_bigm.md", "jhd_role_bigm.md", "jhd_product_jhd3dletter.md",
-                     "jhd_product_jhd_hybrid_letter.md"],
+            "NAVARA": [
+                "jhd_persona_navara.md", "jhd_role_navara.md", "jhd_product_jhd3dletter.md",
+                "jhd_product_jhd_hybrid_letter.md", "jhd_product_jhd_standard_letter.md"
+            ],
+            "BIGM": [
+                "jhd_persona_bigm.md", "jhd_role_bigm.md", "jhd_product_jhd3dletter.md",
+                "jhd_product_jhd_hybrid_letter.md", "jhd_product_jhd_standard_letter.md"
+            ]
         }
 
     def _load_system_prompt(self, agent_name):
@@ -53,28 +57,18 @@ class JHDWorkflowManager:
                 analysis = self._call_agent(agent, internal_memory)
                 internal_memory.append({"role": "assistant", "content": f"[{agent} Analysis]: {analysis}"})
             
-         if mode == "Service Mode (Customer)":
-            for agent in ["NOTE", "TERRA", "NAVARA", "BIGM"]:
-                instruction = f"ถึง {agent}: วิเคราะห์ข้อมูลลูกค้าตาม SOP Step 1 โดยให้เสนอ 'ราคาประเมินเบื้องต้น' ทันทีที่ทำได้ คุยให้กระชับที่สุด"
-                internal_memory.append({"role": "user", "content": instruction})
-                analysis = self._call_agent(agent, internal_memory)
-                internal_memory.append({"role": "assistant", "content": f"[{agent} Analysis]: {analysis}"})
-            
-            # ดักคอ SUN โหมดลูกค้า
             final_prompt = """ถึง SUN: สรุปคำแนะนำจากทีมงานเพื่อตอบลูกค้า โดยต้องทำตามกฎนี้เคร่งครัด:
             1. ห้ามกล่าวสวัสดีซ้ำเด็ดขาด
             2. รวมประโยคที่เกี่ยวข้องกันไว้ด้วยกัน ห้ามหั่นข้อความถี่ยิบเด็ดขาด ให้ตอบสูงสุดไม่เกิน 2-3 กล่องข้อความ (ใช้ [SPLIT] คั่นสูงสุดแค่ 1-2 ครั้งเท่านั้น)
             3. ห้ามอธิบายการทำงานของระบบ เข้าประเด็นทันที"""
             
         else:
-            # Internal Mode
             for agent in ["NOTE", "TERRA", "NAVARA", "BIGM"]:
                 instruction = f"ถึง {agent}: คุณอยู่ใน Internal Mode ให้คำปรึกษา Lead แบบกระชับที่สุด ฟันธงมาเลย ไม่ต้องอธิบายน้ำท่วมทุ่ง"
                 internal_memory.append({"role": "user", "content": instruction})
                 analysis = self._call_agent(agent, internal_memory)
                 internal_memory.append({"role": "assistant", "content": f"[{agent} Analysis]: {analysis}"})
             
-            # ดักคอ SUN โหมด Lead
             final_prompt = """ถึง SUN: สรุปข้อมูลจากทีมงานเพื่อตอบ Lead โดยต้องทำตามกฎนี้เคร่งครัด:
             1. ห้ามกล่าวสวัสดีซ้ำเด็ดขาด เข้าประเด็นทันที
             2. ห้ามหั่นประโยคสั้นเกินไป (เช่น ห้ามแยกคำว่า "Lead ครับ" ออกมาเดี่ยวๆ) ให้รวมใจความไว้ด้วยกัน ตอบสูงสุดไม่เกิน 2-3 กล่องข้อความ (ใช้ [SPLIT] คั่นสูงสุดแค่ 1-2 ครั้ง)
