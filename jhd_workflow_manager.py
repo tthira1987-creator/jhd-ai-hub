@@ -5,6 +5,8 @@ class JHDWorkflowManager:
     def __init__(self, api_key):
         self.client = OpenAI(api_key=api_key, base_url="https://openrouter.ai/api/v1")
         self.model = "google/gemini-2.5-flash"
+        
+        # ถอดไฟล์ฐานข้อมูล 3D Letter ทั้งหมดออกจากระบบแล้ว
         self.agent_files = {
             "SUN": ["jhd_persona_sun.md", "jhd_role_sun.md"],
             "NOTE": [
@@ -12,22 +14,18 @@ class JHDWorkflowManager:
                 "jhd_formula_pricing_note.md", "jhd_company_pitch_note.md", 
                 "jhd_script_sales_note.md", "jhd_script_quick_reply_note.md",
                 "jhd_sales_intelligence_note.md", "jhd_sales_strategy_note.md",
-                "jhd_sales_framework_note.md", "jhd_product_jhd3dletter.md",
-                "jhd_product_jhd_hybrid_letter.md", "jhd_product_jhd_standard_letter.md"
+                "jhd_sales_framework_note.md"
             ],
             "TERRA": [
                 "jhd_persona_terra.md", "jhd_role_terra.md", 
                 "jhd_company_core_terra.md", "jhd_master_sop_terra.md",
-                "jhd_service_system_terra.md", "jhd_product_jhd3dletter.md",
-                "jhd_product_jhd_hybrid_letter.md", "jhd_product_jhd_standard_letter.md"
+                "jhd_service_system_terra.md"
             ],
             "NAVARA": [
-                "jhd_persona_navara.md", "jhd_role_navara.md", "jhd_product_jhd3dletter.md",
-                "jhd_product_jhd_hybrid_letter.md", "jhd_product_jhd_standard_letter.md"
+                "jhd_persona_navara.md", "jhd_role_navara.md"
             ],
             "BIGM": [
-                "jhd_persona_bigm.md", "jhd_role_bigm.md", "jhd_product_jhd3dletter.md",
-                "jhd_product_jhd_hybrid_letter.md", "jhd_product_jhd_standard_letter.md"
+                "jhd_persona_bigm.md", "jhd_role_bigm.md"
             ]
         }
 
@@ -55,13 +53,12 @@ class JHDWorkflowManager:
 
         if mode == "Service Mode (Customer)":
             for agent in ["NOTE", "TERRA", "NAVARA", "BIGM"]:
-                # สอนมารยาทรับแขก: ถ้าทักทายเฉยๆ อย่าเพิ่งรัวคำถาม
                 instruction = f"ถึง {agent}: วิเคราะห์ข้อความลูกค้า หากลูกค้าเพียงแค่ทักทาย (เช่น สวัสดี) ให้เตรียมข้อความต้อนรับและถามความต้องการเบื้องต้น ห้ามรัวคำถามสเปกยาวๆ เด็ดขาด! แต่หากลูกค้าเริ่มบรีฟงานแล้ว ค่อยวิเคราะห์ตาม SOP Step 1 (ต้องขอชื่อ/เบอร์โทรด้วย) คุยให้กระชับที่สุด"
                 internal_memory.append({"role": "user", "content": instruction})
                 analysis = self._call_agent(agent, internal_memory)
                 internal_memory.append({"role": "assistant", "content": f"[{agent} Analysis]: {analysis}"})
             
-            # ดักคอ SUN โหมดลูกค้า (บังคับขึ้นบรรทัดใหม่)
+            # ดักคอ SUN โหมดลูกค้า
             final_prompt = """ถึง SUN: ตอนนี้คุณคือ "แอดมินบริการลูกค้า" กำลังตอบแชท "ลูกค้า" ให้แปลงข้อมูลจากทีมงานเป็นข้อความตอบลูกค้าที่สุภาพ โดยยึดกฎเหล็กนี้:
             1. มารยาทพื้นฐาน: หากลูกค้าเพิ่งทักทาย (เช่น "สวัสดีครับ") ให้ทักทายกลับอย่างเป็นมิตรและถามว่าสนใจงานป้ายประเภทไหน หรือมีอะไรให้ช่วย (ห้ามส่งลิสต์คำถามยาวๆ เด็ดขาด)
             2. การเรียกชื่อ: หากลูกค้าแจ้งชื่อ ให้เรียกชื่อลูกค้าเสมอ หากยังไม่ทราบ ให้เรียก "คุณลูกค้า"
