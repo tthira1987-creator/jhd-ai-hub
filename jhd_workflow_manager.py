@@ -48,30 +48,37 @@ class JHDWorkflowManager:
 
     def run_workflow(self, chat_history, mode):
         latest_message = chat_history[-1]['content']
-        internal_memory = [{"role": "user", "content": f"Lead/ลูกค้า ถามว่า: {latest_message}"}]
+        
+        # 1. แยกว่าใครเป็นคนคุย เพื่อตัดคำว่า Lead ออกจากสมอง AI ในโหมดลูกค้า
+        speaker = "คุณลูกค้า" if mode == "Service Mode (Customer)" else "Lead"
+        internal_memory = [{"role": "user", "content": f"{speaker} พิมพ์มาว่า: {latest_message}"}]
 
         if mode == "Service Mode (Customer)":
             for agent in ["NOTE", "TERRA", "NAVARA", "BIGM"]:
-                instruction = f"ถึง {agent}: วิเคราะห์ข้อมูลลูกค้าตาม SOP Step 1 โดยให้เสนอ 'ราคาประเมินเบื้องต้น' ทันทีที่ทำได้ คุยให้กระชับที่สุด"
+                instruction = f"ถึง {agent}: วิเคราะห์ข้อมูลลูกค้าตาม SOP Step 1 เสนอราคาประเมินเบื้องต้นถ้าทำได้ คุยให้กระชับที่สุด"
                 internal_memory.append({"role": "user", "content": instruction})
                 analysis = self._call_agent(agent, internal_memory)
                 internal_memory.append({"role": "assistant", "content": f"[{agent} Analysis]: {analysis}"})
             
-            final_prompt = """ถึง SUN: สรุปคำแนะนำจากทีมงานเพื่อตอบลูกค้า โดยต้องทำตามกฎนี้เคร่งครัด:
-            1. ห้ามกล่าวสวัสดีซ้ำเด็ดขาด
-            2. รวมประโยคที่เกี่ยวข้องกันไว้ด้วยกัน ห้ามหั่นข้อความถี่ยิบเด็ดขาด ให้ตอบสูงสุดไม่เกิน 2-3 กล่องข้อความ (ใช้ [SPLIT] คั่นสูงสุดแค่ 1-2 ครั้งเท่านั้น)
-            3. ห้ามอธิบายการทำงานของระบบ เข้าประเด็นทันที"""
+            # 2. ดักคอ SUN โหมดลูกค้า (บังคับสวมบทแอดมิน ห้ามรายงานหลังบ้าน)
+            final_prompt = """ถึง SUN: ตอนนี้คุณคือ "แอดมินบริการลูกค้า" กำลังตอบแชท "ลูกค้า" โดยตรง ให้แปลงข้อมูลวิเคราะห์จากทีมงานเป็นข้อความตอบลูกค้าที่สุภาพและกระชับ โดยยึดกฎเหล็กนี้:
+            1. สรรพนาม: เรียกผู้สนทนาว่า "คุณลูกค้า" (ห้ามหลุดคำว่า Lead หรือรายงานสรุปประเด็นเด็ดขาด)
+            2. ห้ามรายงานหลังบ้าน: ห้ามอธิบายกระบวนการทำงาน ห้ามพูดชื่อ Agent (TERRA, NOTE ฯลฯ) หรือบอกว่าทีมงานกำลังทำอะไร
+            3. เข้าประเด็น: หากทีมงานวิเคราะห์แล้วพบว่าต้องการข้อมูลเพิ่ม ให้นำคำถามเหล่านั้นมาถามลูกค้าตรงๆ ได้เลยอย่างสุภาพ
+            4. รูปแบบ: ห้ามกล่าวสวัสดีซ้ำ และรวมใจความตอบไม่เกิน 2-3 กล่องข้อความ (ใช้ [SPLIT] คั่น)"""
             
         else:
+            # Internal Mode
             for agent in ["NOTE", "TERRA", "NAVARA", "BIGM"]:
                 instruction = f"ถึง {agent}: คุณอยู่ใน Internal Mode ให้คำปรึกษา Lead แบบกระชับที่สุด ฟันธงมาเลย ไม่ต้องอธิบายน้ำท่วมทุ่ง"
                 internal_memory.append({"role": "user", "content": instruction})
                 analysis = self._call_agent(agent, internal_memory)
                 internal_memory.append({"role": "assistant", "content": f"[{agent} Analysis]: {analysis}"})
             
+            # ดักคอ SUN โหมด Lead
             final_prompt = """ถึง SUN: สรุปข้อมูลจากทีมงานเพื่อตอบ Lead โดยต้องทำตามกฎนี้เคร่งครัด:
             1. ห้ามกล่าวสวัสดีซ้ำเด็ดขาด เข้าประเด็นทันที
-            2. ห้ามหั่นประโยคสั้นเกินไป (เช่น ห้ามแยกคำว่า "Lead ครับ" ออกมาเดี่ยวๆ) ให้รวมใจความไว้ด้วยกัน ตอบสูงสุดไม่เกิน 2-3 กล่องข้อความ (ใช้ [SPLIT] คั่นสูงสุดแค่ 1-2 ครั้ง)
+            2. ห้ามหั่นประโยคสั้นเกินไป ให้รวมใจความไว้ด้วยกัน ตอบสูงสุดไม่เกิน 2-3 กล่องข้อความ (ใช้ [SPLIT] คั่น)
             3. ตอบให้ตรงคำถามที่สุด ถ้าขอตัวเลือกที่ถูกสุด ให้ตอบชื่อรุ่นและราคามาเลย ไม่ต้องอธิบายยืดยาว"""
 
         internal_memory.append({"role": "user", "content": final_prompt})
