@@ -13,7 +13,7 @@ class JHDWorkflowManager:
                 "jhd_formula_pricing_note.md", "jhd_company_pitch_note.md", 
                 "jhd_script_sales_note.md", "jhd_script_quick_reply_note.md",
                 "jhd_sales_intelligence_note.md", "jhd_sales_strategy_note.md",
-                "jhd_sales_framework_note.md"
+                "jhd_sales_framework_note.md", "jhd_team_manual_note.md"
             ],
             "TERRA": [
                 "jhd_persona_terra.md", "jhd_role_terra.md", 
