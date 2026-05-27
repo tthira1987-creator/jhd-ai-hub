@@ -45,41 +45,53 @@ class JHDWorkflowManager:
         return response.choices[0].message.content
 
     def run_workflow(self, chat_history, mode):
-        speaker = "คุณลูกค้า" if mode == "Service Mode (Customer)" else "Lead"
+        # 1. ดึงประวัติแชทย้อนหลัง (ให้ AI จำบริบทได้ ไม่ถามซ้ำ)
+        recent_history = chat_history[-6:]
         
-        # 1. ดึงประวัติแชทย้อนหลัง (แก้โรคความจำสั้น ให้ AI จำบริบทได้)
-        recent_history = chat_history[-6:] # ดึง 6 ข้อความล่าสุด
-        chat_context = "\n".join([f"{'SUN' if msg['role'] == 'assistant' else speaker}: {msg['content']}" for msg in recent_history])
-
         if mode == "Service Mode (Customer)":
-            internal_memory = [{"role": "user", "content": f"นี่คือประวัติการสนทนาล่าสุด:\n{chat_context}"}]
+            # จัดรูปแบบแชทให้ SUN รู้ว่านี่คือการคุยกับ "ลูกค้า"
+            chat_context = "\n".join([f"{'แอดมิน JHD' if msg['role'] == 'assistant' else 'ลูกค้า'}: {msg['content']}" for msg in recent_history])
             
-            for agent in ["NOTE", "TERRA", "NAVARA", "BIGM"]:
-                # 2. ปลดล็อก SOP สั่งให้กล้าเสนอราคาและห้ามถามซ้ำ
-                instruction = f"ถึง {agent}: วิเคราะห์แชทล่าสุด กฎพิเศษ: อนุญาตให้ 'ประเมินราคาคร่าวๆ หรือแนะนำแพ็กเกจ (A/B/C)' ให้ลูกค้าทราบได้ทันทีแม้ข้อมูลไม่ครบ (การประเมินเบื้องต้นไม่ผิด SOP) ห้ามทำตัวเป็นหุ่นยนต์ลิสต์คำถาม 1-5 ห้ามถามข้อมูลที่ลูกค้าเคยให้มาแล้วในประวัติแชท"
-                internal_memory.append({"role": "user", "content": instruction})
-                analysis = self._call_agent(agent, internal_memory)
-                internal_memory.append({"role": "assistant", "content": f"[{agent} Analysis]: {analysis}"})
+            # ให้ NOTE แอบวิเคราะห์ราคาและแพ็กเกจอยู่หลังบ้าน (เงียบๆ)
+            note_instruction = f"วิเคราะห์ลูกค้าจากแชทนี้:\n{chat_context}\nให้ประเมินแพ็กเกจ (A/B/C) และราคาคร่าวๆ หรือระบุสิ่งที่ต้องถามเพิ่มสั้นๆ"
+            note_analysis = self._call_agent("NOTE", [{"role": "user", "content": note_instruction}])
             
-            final_prompt = """ถึง SUN: ตอนนี้คุณคือ "แอดมินบริการลูกค้า" ยึดกฎเหล็กนี้:
-            1. ตอบสิ่งลูกค้าอยากรู้ก่อนทันที: หากลูกค้าถามราคา/แพ็กเกจ ให้บอกช่วงราคาคร่าวๆ หรือแนะนำแพ็กเกจให้เห็นภาพก่อนเสมอ ห้ามอ้างว่าข้อมูลไม่ครบแล้วกั๊กข้อมูล
-            2. เป็นธรรมชาติเหมือนมนุษย์: จำข้อมูลที่ลูกค้าพิมพ์มาแล้ว (ชื่อ, ขนาด, วัสดุ) ห้ามทวนถามซ้ำเด็ดขาด 
-            3. ห้ามสอบสวนลูกค้า: หากต้องขอข้อมูลเพิ่ม ให้เนียนถามต่อท้ายทีละ 1-2 ข้อแบบชวนคุย ห้ามลิสต์เป็นข้อ 1-5 ยาวๆ 
-            4. การจัดรูปแบบ: หากมีการอธิบายตัวเลือกให้ขึ้นบรรทัดใหม่ และใช้ [SPLIT] คั่นแบ่งกล่องข้อความให้สวยงาม"""
+            # บังคับสมอง SUN ให้เป็นแอดมินขายของ 100%
+            final_prompt = f"""จากประวัติการคุยกับลูกค้าด้านล่างนี้:
+            {chat_context}
+            
+            ข้อมูลสนับสนุนจากฝ่ายขาย (ห้ามบอกลูกค้าว่ามีข้อมูลนี้): {note_analysis}
+            
+            หน้าที่ของคุณ: พิมพ์ "ตอบลูกค้า" ในฐานะ "แอดมินบริการลูกค้าของ JHD"
+            กฎเหล็กขั้นสูงสุด (Strict Rules) ที่ต้องทำตาม:
+            1. 🛑 ห้ามหลุดคำว่า "Lead", "NOTE", "TERRA", "NAVARA", "BIGM" หรือ "Sub Agent" ออกมาเด็ดขาด!
+            2. 🛑 ห้ามรายงานผล หรือพิมพ์สรุปการทำงานแบบ AI ให้พิมพ์คุยเหมือนมนุษย์(แอดมิน) คุยกับลูกค้าจริงๆ
+            3. 💰 กล้าเสนอราคา: ให้นำข้อมูลจากฝ่ายขายมา "เสนอแพ็กเกจ (A/B/C) และบอกราคาคร่าวๆ" ให้ลูกค้าทราบทันที ไม่ต้องรอให้ข้อมูลครบ 100%
+            4. 🗣️ ความเป็นธรรมชาติ: จำข้อมูลที่ลูกค้าเคยบอกไว้ ห้ามถามซ้ำ! หากต้องขอข้อมูลเพิ่ม (เช่น ขนาด, หน้างาน) ให้เนียนถามต่อท้ายทีละ 1-2 ข้อ ห้ามทำตัวเป็นหุ่นยนต์ลิสต์คำถาม 1-5 ข้อเด็ดขาด
+            5. 📦 ใช้ [SPLIT] คั่นกล่องข้อความให้อ่านง่าย
+            
+            พิมพ์ข้อความตอบลูกค้าได้เลย:"""
+            
+            return self._call_agent("SUN", [{"role": "user", "content": final_prompt}])
             
         else:
-            # โหมด Internal
-            internal_memory = [{"role": "user", "content": f"นี่คือประวัติการสนทนาล่าสุด:\n{chat_context}"}]
+            # ==========================================
+            # โหมด Internal (Lead) - ให้ทีมงานประชุมกันตามปกติ
+            # ==========================================
+            speaker = "Lead"
+            chat_context = "\n".join([f"{'SUN' if msg['role'] == 'assistant' else speaker}: {msg['content']}" for msg in recent_history])
+            internal_memory = [{"role": "user", "content": f"นี่คือประวัติการสนทนา:\n{chat_context}"}]
+            
             for agent in ["NOTE", "TERRA", "NAVARA", "BIGM"]:
-                instruction = f"ถึง {agent}: คุณอยู่ใน Internal Mode อ่านประวัติแชทและสรุปข้อมูลให้ตรงประเด็น ฟันธงมาเลย"
+                instruction = f"ถึง {agent}: วิเคราะห์ข้อมูลจากแชทล่าสุดให้ Lead"
                 internal_memory.append({"role": "user", "content": instruction})
                 analysis = self._call_agent(agent, internal_memory)
                 internal_memory.append({"role": "assistant", "content": f"[{agent} Analysis]: {analysis}"})
             
-            final_prompt = """ถึง SUN: สรุปข้อมูลเพื่อตอบ Lead โดยทำตามกฎนี้:
+            final_prompt = """ถึง SUN: สรุปข้อมูลทั้งหมดจาก Sub-Agent เพื่อรายงาน Lead (คุณออฟ)
             1. ตอบเข้าประเด็นทันที ห้ามทักทายซ้ำซาก
             2. หากมีการแจกแจง ต้องขึ้นบรรทัดใหม่
             3. แบ่งกล่องข้อความใช้ [SPLIT] คั่น"""
-
-        internal_memory.append({"role": "user", "content": final_prompt})
-        return self._call_agent("SUN", internal_memory)
+            
+            internal_memory.append({"role": "user", "content": final_prompt})
+            return self._call_agent("SUN", internal_memory)
