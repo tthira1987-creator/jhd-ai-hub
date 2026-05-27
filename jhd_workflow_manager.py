@@ -9,9 +9,12 @@ class JHDWorkflowManager:
         self.agent_files = {
             "SUN": ["jhd_persona_sun.md", "jhd_role_sun.md"],
             "NOTE": [
-                "jhd_persona_note.md", "jhd_role_note.md", 
-                "jhd_formula_pricing_note.md", "jhd_company_pitch_note.md", "jhd_script_quick_reply_note.md",
-                "jhd_sales_intelligence_note.md", "jhd_team_manual_note.md"
+                "NOTE": [
+                "jhd_persona_note.md",          # นิสัยและคาแรคเตอร์
+                "jhd_role_note.md",             # หน้าที่และขอบเขตงาน
+                "jhd_formula_pricing_note.md",  # สูตรคำนวณราคา (รอกลับมาเติม)
+                "jhd_company_pitch_note.md",    # ข้อมูลจุดเด่นบริษัท
+                "jhd_team_manual_note.md"       # 🌟 คัมภีร์หลัก (รวมทุกอย่างไว้ที่นี่)
             ],
             "TERRA": [
                 "jhd_persona_terra.md", "jhd_role_terra.md", 
